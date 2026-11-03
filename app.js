@@ -25,12 +25,21 @@ const CONFIG = {
     places: [
       {name:'Joe\u2019s Coffee', note:'12:30 \u00b7 with Sam'},
     ],
+    grocery: [
+      {name:'chicken thighs', done:false},
+      {name:'lemons', done:false},
+      {name:'garlic', done:false},
+      {name:'pasta', done:false},
+      {name:'parmesan', done:false},
+    ],
   }
 };
 const KEY = 'katch-demo-v3';
 let state, view = {tab:'today', bucket:null};
 function load(){
-  try{ const s = localStorage.getItem(KEY); if(s){ state = JSON.parse(s); return; } }catch(e){}
+  try{ const s = localStorage.getItem(KEY); if(s){ state = JSON.parse(s);
+    if(!state.grocery) state.grocery = JSON.parse(JSON.stringify(CONFIG.seed.grocery));
+    return; } }catch(e){}
   state = JSON.parse(JSON.stringify(CONFIG.seed));
   save();
 }
@@ -44,7 +53,10 @@ function render(){
   document.getElementById('week').innerHTML = days.map((d,i)=>
     `<div class="d${i===0?' today':''}"><span>${d}</span><span class="n">${2+i}</span></div>`).join('');
   const app = document.getElementById('app');
-  if(view.tab==='today') app.innerHTML = viewToday();
+  if(view.view==='event') app.innerHTML = viewEventDetail(view.eventIndex);
+  else if(view.view==='recipes') app.innerHTML = viewRecipes();
+  else if(view.view==='grocery') app.innerHTML = viewGrocery();
+  else if(view.tab==='today') app.innerHTML = viewToday();
   else if(view.tab==='month') app.innerHTML = viewMonth();
   else if(view.tab==='places') app.innerHTML = viewPlaces();
   else app.innerHTML = view.bucket ? viewBucketDetail(view.bucket) : viewBuckets();
@@ -60,16 +72,17 @@ function viewToday(){
     h += `<div class="feat"><span class="strip" style="background:${b.color}"></span>
       <div class="up">Up next \u00b7 ${esc(ev.time)}</div><h3>${esc(ev.title)}</h3><div class="sub">${esc(ev.note)}</div>
       <div class="row"><span class="btag"><span class="dot" style="background:${b.color}"></span>${esc(b.name)}</span>
-      <button class="openbtn" data-open-event="0">Open \u2192</button></div></div>`; });
+      <button class="openbtn" data-open-event="${state.events.indexOf(ev)}">Open \u2192</button></div></div>`; });
   h += `<div class="card">` + rest.map((ev)=>{ const b = bucket(ev.bucket); const i = state.events.indexOf(ev);
-    return `<button class="evrow${ev.done?' done':''}" data-toggle-event="${i}">
+    return `<div class="evrow${ev.done?' done':''}" data-open-event="${i}">
       <span class="strip" style="background:${b.color}"></span>
+      <span class="chk evchk" data-toggle-event="${i}"></span>
       ${ev.photo?`<img src="${ev.photo}" alt="">`:''}
       <span class="tt"><span class="name"><span class="star">\u2605</span>${esc(ev.title)}</span>
       <span class="meta"><span class="dot" style="background:${b.color}"></span>${esc(ev.time)}
       ${ev.place?`<span>\u00b7</span><span class="place">${esc(ev.place)}</span>`:''}
       ${ev.door?`<span>\u00b7</span><span class="door">${esc(ev.door)}</span>`:''}</span></span>
-      <span class="arr">\u2192</span></button>`; }).join('') + `</div>`;
+      <span class="arr">\u2192</span></div>`; }).join('') + `</div>`;
   const done = state.routines.filter(r=>r.done).length;
   h += `<div class="card" style="margin-top:12px"><div class="routhead"><h3>Routines</h3><em>the daily drill</em><span>${done}/${state.routines.length}</span></div>`
     + state.routines.map((r,i)=>{ const b = bucket(r.bucket);
@@ -114,13 +127,53 @@ function viewBucketDetail(id){
       <label>Bucket color</label><div class="swatches">${SWATCHES.map(c=>`<button class="${c.toLowerCase()===b.color.toLowerCase()?'sel':''}" style="background:${c}" data-color="${c}"></button>`).join('')}</div>
     </div></div>` + footnote();
 }
+function viewEventDetail(i){
+  const ev = state.events[i]; const b = bucket(ev.bucket);
+  let h = `<button class="backlink" data-back-today>\u2190 Today</button>
+    <div class="detail">`
+    + (ev.photo?`<img class="hero" src="${ev.photo}" alt="">`:'')
+    + `<h2 class="dtitle"><span class="star">\u2605</span> ${esc(ev.title)}</h2>
+    <div class="dmeta"><span class="dot" style="background:${b.color}"></span>${esc(ev.time)} \u00b7 ${esc(b.name)}</div>`
+    + (ev.note?`<div class="dnote">${esc(ev.note)}</div>`:'')
+    + (ev.place?`<div class="dplace"><span class="pin">\u2691</span>${esc(ev.place)} <a href="https://maps.google.com/?q=${encodeURIComponent(ev.place)}" target="_blank" rel="noopener">Map \u2192</a></div>`:'')
+    + `<button class="donebtn${ev.done?' on':''}" data-toggle-event="${i}">${ev.done?'Done \u2713':'Mark done'}</button>`;
+  if(ev.door){
+    h += `<div class="doorhead">Open the door</div><div class="doorcards">
+      <button class="doorcard" data-open-recipes><span class="dc-t">Recipes</span><span class="dc-s">2 sample recipes</span><span class="arr">\u2192</span></button>
+      <button class="doorcard" data-open-grocery><span class="dc-t">Grocery list</span><span class="dc-s">${state.grocery.filter(g=>!g.done).length} to get</span><span class="arr">\u2192</span></button>
+    </div>`;
+  }
+  return h + `</div>` + footnote();
+}
+function viewRecipes(){
+  return `<button class="backlink" data-open-event="2">\u2190 Lemon chicken night</button>
+    <div class="section"><h2>Recipes</h2><span>sample</span></div><div class="card">
+    <div class="recipe"><h4>Lemon herb chicken</h4><p>Chicken thighs, lemon, garlic, olive oil, thyme. Sear 6 min a side, rest 5. ~25 min.</p></div>
+    <div class="recipe"><h4>Garlic butter pasta</h4><p>Pasta, garlic, butter, parmesan, pasta water. One pan, ~15 min.</p></div>
+    </div>` + footnote();
+}
+function viewGrocery(){
+  const left = state.grocery.filter(g=>!g.done).length;
+  return `<button class="backlink" data-open-event="2">\u2190 Lemon chicken night</button>
+    <div class="section"><h2>Grocery list</h2><span>${left} to get</span></div><div class="card">`
+    + state.grocery.map((g,i)=>`<button class="taskrow${g.done?' done':''}" data-toggle-grocery="${i}"><span class="chk"></span><span class="nm">${esc(g.name)}</span></button>`).join('')
+    + `<div class="addtask"><input id="newGrocery" placeholder="add an item\u2026"><button data-add-grocery>Add</button></div></div>` + footnote();
+}
 function footnote(){
   return `<div class="footnote">Demo content - example data only, not anyone\u2019s real plans.<br>Edits save in this browser (localStorage).</div>
           <button class="reset" data-reset>Reset demo</button>`;
 }
 function bind(){
   document.querySelectorAll('[data-tab]').forEach(el=> el.onclick = ()=>{ view = {tab:el.dataset.tab, bucket:null}; render(); });
-  document.querySelectorAll('[data-toggle-event]').forEach(el=> el.onclick = ()=>{ const e = state.events[+el.dataset.toggleEvent]; e.done = !e.done; save(); render(); });
+  document.querySelectorAll('[data-toggle-event]').forEach(el=> el.onclick = (ev)=>{ ev.stopPropagation(); const e = state.events[+el.dataset.toggleEvent]; e.done = !e.done; save(); render(); });
+  document.querySelectorAll('[data-open-event]').forEach(el=> el.onclick = ()=>{ view = {tab:'today', view:'event', eventIndex:+el.dataset.openEvent}; render(); });
+  document.querySelectorAll('[data-back-today]').forEach(el=> el.onclick = ()=>{ view = {tab:'today'}; render(); });
+  document.querySelectorAll('[data-open-recipes]').forEach(el=> el.onclick = ()=>{ view = {tab:'today', view:'recipes'}; render(); });
+  document.querySelectorAll('[data-open-grocery]').forEach(el=> el.onclick = ()=>{ view = {tab:'today', view:'grocery'}; render(); });
+  document.querySelectorAll('[data-toggle-grocery]').forEach(el=> el.onclick = ()=>{ const g = state.grocery[+el.dataset.toggleGrocery]; g.done = !g.done; save(); render(); });
+  const ag = document.querySelector('[data-add-grocery]');
+  if(ag) ag.onclick = ()=>{ const inp = document.getElementById('newGrocery'); const v = inp.value.trim();
+    if(v){ state.grocery.push({name:v, done:false}); save(); render(); } };
   document.querySelectorAll('[data-toggle-routine]').forEach(el=> el.onclick = ()=>{ const r = state.routines[+el.dataset.toggleRoutine]; r.done = !r.done; save(); render(); });
   document.querySelectorAll('[data-open-bucket]').forEach(el=> el.onclick = ()=>{ view.bucket = el.dataset.openBucket; render(); });
   document.querySelectorAll('[data-back-buckets]').forEach(el=> el.onclick = ()=>{ view.bucket = null; render(); });
@@ -133,7 +186,7 @@ function bind(){
   if(at) at.onclick = ()=>{ const inp = document.getElementById('newTask'); const v = inp.value.trim();
     if(v){ bucket(view.bucket).tasks.push({name:v, tag:'', done:false}); save(); render(); } };
   const qa = document.querySelector('[data-quickadd]');
-  if(qa) qa.onclick = ()=>{ const v = prompt('Add to today (goes to \u201cother\u201d bucket):'); if(v && v.trim()){ bucket('other').tasks.push({name:v.trim(), tag:'', done:false}); save(); } };
+  if(qa) qa.onclick = ()=>{ const v = prompt('Add to today\u2019s lineup:'); if(v && v.trim()){ state.events.push({time:'Anytime', title:v.trim(), bucket:'other', note:'', done:false}); save(); render(); } };
   const rs = document.querySelector('[data-reset]');
   if(rs) rs.onclick = ()=>{ localStorage.removeItem(KEY); load(); view = {tab:'today', bucket:null}; render(); };
 }
