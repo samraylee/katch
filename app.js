@@ -36,8 +36,8 @@ const CONFIG = {
   }
 };
 const KEY = 'katch-demo-v3';
-const SUPABASE_URL = '';      // filled when the backend is configured
-const SUPABASE_ANON_KEY = '';
+const SUPABASE_URL = 'https://mkiuzakwiggcnxqabxzy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1raXV6YWt3aWdnY254cWFieHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2NzAxMzcsImV4cCI6MjEwOTI0NjEzN30.64buiVe94UvkA6fiBDeU6cwVrckgCTKsP02re7TX_DQ';
 let sb = null, mode = 'local', userEmail = null, uid = null, syncTimer = null, booted = false;
 const EMPTY_SEED = () => ({ events:[], routines:[], places:[], grocery:[],
   buckets:[
