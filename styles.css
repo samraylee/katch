@@ -136,3 +136,7 @@ main{padding:0 16px 40px}
 /* v3.2: real week strip */
 .week .d{background:none;border:none;font:inherit;cursor:pointer;padding:0}
 .week .d.sel .n{border-color:var(--vio);border-width:1.6px}
+.qaform{display:flex;gap:8px;margin:10px 4px 0}
+.qaform input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--ink);font:inherit;font-size:14px}
+.qaform input:focus{outline:none;border-color:var(--vio)}
+.qaform button{background:linear-gradient(135deg,#5A2BE7,#8A5CF6);border:none;border-radius:12px;padding:10px 16px;color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
