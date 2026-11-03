@@ -1,6 +1,7 @@
-/* Katch demo v3 - J direction: dark plum depth, Fraunces serif, violet accent.
-   Functional: editable bucket names + colors with persistence, checkable events/tasks/routines.
-   Demo content only - not Kat's real data. */
+/* Katch v4 - J direction: dark plum depth, Fraunces serif, violet accent.
+   Modes:
+   - local: no backend configured -> demo content, saves to localStorage. Demo content only - not Kat's real data.
+   - cloud: Supabase configured -> Google sign-in, per-user private state synced to a row only that user can read/write (RLS). */
 const SWATCHES = ['#BFB065','#D08A92','#B84A52','#E8B74A','#E95FB8','#8B86A3','#8A5CF6','#A9C0CB','#7FB069','#E8843C'];
 const CONFIG = {
   seed: {
@@ -35,6 +36,18 @@ const CONFIG = {
   }
 };
 const KEY = 'katch-demo-v3';
+const SUPABASE_URL = '';      // filled when the backend is configured
+const SUPABASE_ANON_KEY = '';
+let sb = null, mode = 'local', userEmail = null, uid = null, syncTimer = null, booted = false;
+const EMPTY_SEED = () => ({ events:[], routines:[], places:[], grocery:[],
+  buckets:[
+    {id:'classes',  name:'Classes',          color:'#BFB065', tasks:[]},
+    {id:'language', name:'Language',         color:'#D08A92', tasks:[]},
+    {id:'hoe',      name:'House of Eras',    color:'#B84A52', tasks:[]},
+    {id:'atelier',  name:'Atelier',          color:'#E8B74A', tasks:[]},
+    {id:'messages', name:'Messages to Send', color:'#E95FB8', tasks:[]},
+    {id:'other',    name:'Other',            color:'#8B86A3', tasks:[]},
+  ]});
 let state, view = {tab:'today', bucket:null, date:null};
 const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const TODAY = iso(new Date());
@@ -57,7 +70,16 @@ function load(){
   state = JSON.parse(JSON.stringify(CONFIG.seed));
   save();
 }
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function save(){
+  try{ localStorage.setItem(cacheKey(), JSON.stringify(state)); }catch(e){}
+  if(mode==='cloud' && sb && uid){
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(async ()=>{
+      try{ await sb.from('user_state').upsert({user_id: uid, state: state, updated_at: new Date().toISOString()}); }catch(e){}
+    }, 600);
+  }
+}
+const cacheKey = () => mode==='cloud' && uid ? KEY+'-'+uid : KEY;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const bucket = id => state.buckets.find(b => b.id === id) || state.buckets.find(b => b.id === 'other');
 
@@ -122,7 +144,7 @@ function viewMonth(){
   const daysIn = new Date(y,m+1,0).getDate();
   const byDay = {};
   state.events.forEach(e=>{ const d=parseDay(e.date); if(d.getFullYear()===y&&d.getMonth()===m){ (byDay[d.getDate()] = byDay[d.getDate()]||[]).push(bucket(e.bucket).color); } });
-  let h = `<div class="section"><h2>${MN[m]} ${y}</h2><span>demo</span></div><div class="card"><div class="mgrid">`;
+  let h = `<div class="section"><h2>${MN[m]} ${y}</h2><span>${mode==='cloud'?'':'demo'}</span></div><div class="card"><div class="mgrid">`;
   ['M','T','W','T','F','S','S'].forEach(d=> h += `<div class="h">${d}</div>`);
   for(let i=0;i<first;i++) h += `<div class="c dim">${dimStart.getDate()+i}</div>`;
   for(let d=1;d<=daysIn;d++){
@@ -188,6 +210,7 @@ function viewGrocery(){
     + `<div class="addtask"><input id="newGrocery" placeholder="add an item\u2026"><button data-add-grocery>Add</button></div></div>` + footnote();
 }
 function footnote(){
+  if(mode==='cloud') return `<div class="footnote">Private to your account - only you can see this.</div>`;
   return `<div class="footnote">Demo content - example data only, not anyone\u2019s real plans.<br>Edits save in this browser (localStorage).</div>
           <button class="reset" data-reset>Reset demo</button>`;
 }
@@ -223,5 +246,69 @@ function bind(){
   const rs = document.querySelector('[data-reset]');
   if(rs) rs.onclick = ()=>{ localStorage.removeItem(KEY); load(); view = {tab:'today', bucket:null}; render(); };
 }
-load();
-render();
+async function loadCloud(){
+  const {data, error} = await sb.from('user_state').select('state').eq('user_id', uid).maybeSingle();
+  if(!error && data && data.state && Object.keys(data.state).length){
+    state = data.state;
+    (state.events||[]).forEach(e=>{ if(!e.date) e.date = TODAY; });
+    if(!state.grocery) state.grocery = [];
+    try{ localStorage.setItem(cacheKey(), JSON.stringify(state)); }catch(e){}
+  } else {
+    state = EMPTY_SEED();
+    try{ await sb.from('user_state').upsert({user_id: uid, state: state, updated_at: new Date().toISOString()}); }catch(e){}
+  }
+}
+function renderAuth(msg){
+  document.querySelector('header').style.display = 'none';
+  document.getElementById('app').innerHTML = '';
+  document.getElementById('tabbar').innerHTML = '';
+  const a = document.getElementById('auth');
+  a.hidden = false;
+  a.innerHTML = `<div class="authcard">
+    <h1 class="auth-title">Katch</h1>
+    <p class="auth-sub">Your plans, buckets and places - private to you.</p>
+    <button class="authbtn" data-google>Continue with Google</button>
+    ${msg?`<p class="auth-err">${esc(msg)}</p>`:''}
+  </div>`;
+  a.querySelector('[data-google]').onclick = async ()=>{
+    const {error} = await sb.auth.signInWithOAuth({provider:'google', options:{redirectTo: location.origin + location.pathname}});
+    if(error) renderAuth(error.message);
+  };
+}
+function renderShell(){
+  document.getElementById('auth').hidden = true;
+  document.querySelector('header').style.display = '';
+  const pill = document.querySelector('.demo-pill');
+  const acct = document.getElementById('accountPill');
+  if(mode==='cloud'){
+    if(pill) pill.style.display = 'none';
+    if(acct){ acct.innerHTML = `<span class="acctmail">${esc(userEmail||'')}</span> <button class="signout" data-signout>Sign out</button>`;
+      acct.querySelector('[data-signout]').onclick = async ()=>{ await sb.auth.signOut(); }; }
+  } else {
+    if(pill) pill.style.display = '';
+    if(acct) acct.innerHTML = '';
+  }
+  render();
+}
+async function enterCloud(session){
+  booted = true;
+  mode = 'cloud'; uid = session.user.id; userEmail = session.user.email || '';
+  await loadCloud();
+  renderShell();
+}
+async function boot(){
+  if(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase){
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const {data:{session}} = await sb.auth.getSession();
+    if(session){ await enterCloud(session); }
+    else renderAuth();
+    sb.auth.onAuthStateChange(async (ev, sess)=>{
+      if(ev==='SIGNED_IN' && sess && (!booted || sess.user.id!==uid)){ await enterCloud(sess); }
+      else if(ev==='SIGNED_OUT'){ booted = false; mode = 'local'; uid = null; userEmail = null; renderAuth(); }
+    });
+  } else {
+    load();
+    renderShell();
+  }
+}
+if(window.supabase){ boot(); } else { load(); renderShell(); }
