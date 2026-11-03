@@ -108,3 +108,28 @@ main{padding:0 16px 40px}
 .placecard .nm{font-size:14px;font-weight:600;color:var(--chambray)}
 .placecard .nt{font-size:11.5px;color:var(--mut);margin-top:2px}
 .placecard a{margin-left:auto;color:var(--vio2);font-size:12px;font-weight:600;text-decoration:none}
+/* event detail + doorway (v3.1) */
+.evchk{width:18px;height:18px;border-radius:50%;border:1.4px solid var(--mut2);flex:none;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff}
+.evrow.done .evchk{background:var(--vio);border-color:var(--vio)}
+.evrow.done .evchk:before{content:'\2713'}
+.detail{padding:4px 0 8px}
+.hero{width:100%;height:180px;object-fit:cover;border-radius:18px;margin:6px 0 14px}
+.dtitle{font-family:'Fraunces',serif;font-size:28px;font-weight:700;letter-spacing:-.01em;margin:2px 0 6px}
+.dtitle .star{color:var(--gold);font-size:16px;vertical-align:4px}
+.dmeta{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:7px}
+.dmeta .dot{width:7px;height:7px;border-radius:50%}
+.dnote{font-size:13px;color:var(--mut);margin-top:8px}
+.dplace{margin-top:12px;font-size:13.5px;color:var(--chambray);font-weight:600;display:flex;align-items:center;gap:8px}
+.dplace a{color:var(--chambray);margin-left:auto;font-size:12.5px;border:1.3px solid var(--line);border-radius:999px;padding:6px 12px;text-decoration:none}
+.donebtn{margin-top:14px;width:100%;background:none;border:1.3px solid var(--line);color:var(--ink);border-radius:14px;padding:12px;font:600 13px 'Inter';cursor:pointer}
+.donebtn.on{background:var(--vio);border-color:var(--vio);color:#fff}
+.doorhead{margin:22px 0 10px;font:600 11px 'Inter';letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.doorcards{display:flex;flex-direction:column;gap:10px}
+.doorcard{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;color:inherit;text-align:left;font:inherit}
+.doorcard .dc-t{font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:var(--gold)}
+.doorcard .dc-s{font-size:11.5px;color:var(--mut);flex:1}
+.doorcard .arr{width:26px;height:26px;border:1.3px solid var(--line);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px}
+.recipe{padding:14px 16px}
+.recipe+.recipe{border-top:1px solid var(--line)}
+.recipe h4{font-family:'Fraunces',serif;font-size:16px;margin:0 0 4px}
+.recipe p{font-size:12.5px;color:var(--mut);margin:0;line-height:1.5}
