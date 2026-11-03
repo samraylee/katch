@@ -185,7 +185,7 @@ function viewToday(){
       <span class="tt"><span class="name"><span class="star">\u2605</span>${esc(ev.title)}</span>
       <span class="meta"><span class="dot" style="background:${b.color}"></span>${esc(ev.time)}
       ${ev.place?`<span>\u00b7</span><span class="place">${esc(ev.place)}</span>`:''}
-      ${ev.door?`<span>\u00b7</span><span class="door">${esc(ev.door)}</span>`:''}</span></span>
+      ${ev.door?`<span>\u00b7</span><span class="door">${esc(typeof ev.door==='string'?ev.door:'recipes + list')}</span>`:''}</span></span>
       <span class="arr">\u2192</span></div>`; }).join('') + `</div>`; }
   const done = state.routines.filter(r=>r.done).length;
   h += `<div class="card" style="margin-top:12px"><div class="routhead"><h3>Routines</h3><em>the daily drill</em><span>${done}/${state.routines.length}</span></div>`
