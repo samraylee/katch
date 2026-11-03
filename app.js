@@ -118,7 +118,7 @@ function viewToday(){
       <div class="up">Up next \u00b7 ${esc(ev.time)}</div><h3>${esc(ev.title)}</h3><div class="sub">${esc(ev.note)}</div>
       <div class="row"><span class="btag"><span class="dot" style="background:${b.color}"></span>${esc(b.name)}</span>
       <button class="openbtn" data-open-event="${state.events.indexOf(ev)}">Open \u2192</button></div></div>`; });
-  h += (feats.length||rest.length)?`<div class="card">`:`` + rest.map((ev)=>{ const b = bucket(ev.bucket); const i = state.events.indexOf(ev);
+  if(feats.length||rest.length){ h += `<div class="card">` + rest.map((ev)=>{ const b = bucket(ev.bucket); const i = state.events.indexOf(ev);
     return `<div class="evrow${ev.done?' done':''}" data-open-event="${i}">
       <span class="strip" style="background:${b.color}"></span>
       <span class="chk evchk" data-toggle-event="${i}"></span>
@@ -127,7 +127,7 @@ function viewToday(){
       <span class="meta"><span class="dot" style="background:${b.color}"></span>${esc(ev.time)}
       ${ev.place?`<span>\u00b7</span><span class="place">${esc(ev.place)}</span>`:''}
       ${ev.door?`<span>\u00b7</span><span class="door">${esc(ev.door)}</span>`:''}</span></span>
-      <span class="arr">\u2192</span></div>`; }).join('') + `</div>`;
+      <span class="arr">\u2192</span></div>`; }).join('') + `</div>`; }
   const done = state.routines.filter(r=>r.done).length;
   h += `<div class="card" style="margin-top:12px"><div class="routhead"><h3>Routines</h3><em>the daily drill</em><span>${done}/${state.routines.length}</span></div>`
     + state.routines.map((r,i)=>{ const b = bucket(r.bucket);
