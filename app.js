@@ -23,7 +23,7 @@ const CONFIG = {
       {id:'other',    name:'Other',            color:'#8B86A3', tasks:[{name:'example task - add your own',tag:'',done:false}]},
     ],
     places: [
-      {name:'Joe\u2019s Coffee', note:'12:30 \u00b7 with Sam'},
+      {name:'Joe\u2019s Coffee', note:'12:30 \u00b7 with Sam', date:null},
     ],
     grocery: [
       {name:'chicken thighs', done:false},
@@ -51,7 +51,9 @@ function load(){
   try{ const s = localStorage.getItem(KEY); if(s){ state = JSON.parse(s);
     if(!state.grocery) state.grocery = JSON.parse(JSON.stringify(CONFIG.seed.grocery));
     (state.events||[]).forEach(e=>{ if(!e.date) e.date = TODAY; });
+    (state.places||[]).forEach(p=>{ if(!p.date) p.date = TODAY; });
     return; } }catch(e){}
+  CONFIG.seed.places.forEach(p=>{ if(!p.date) p.date = TODAY; });
   state = JSON.parse(JSON.stringify(CONFIG.seed));
   save();
 }
@@ -63,7 +65,8 @@ function render(){
   const sd = selDate();
   const dayEvents = state.events.filter(e=>e.date===sd);
   document.querySelector('h1.day').textContent = fmtDayName(sd);
-  document.getElementById('dateSummary').textContent = `${fmtShort(sd)} \u00b7 ${dayEvents.length} plan${dayEvents.length===1?'':'s'} \u00b7 ${state.places.length} place`;
+  const dayPlaces = state.places.filter(p=>!p.date || p.date===sd);
+  document.getElementById('dateSummary').textContent = `${fmtShort(sd)} \u00b7 ${dayEvents.length} plan${dayEvents.length===1?'':'s'} \u00b7 ${dayPlaces.length} place${dayPlaces.length===1?'':'s'}`;
   const mon = mondayOf(new Date());
   document.getElementById('week').innerHTML = ['M','T','W','T','F','S','S'].map((d,i)=>{
     const dd = addDays(mon,i), di = iso(dd);
@@ -109,6 +112,7 @@ function viewToday(){
       return `<button class="routrow${r.done?' done':''}" data-toggle-routine="${i}"><span class="bdot" style="background:${b.color}"></span><span class="chk"></span><span class="nm">${esc(r.name)}</span></button>`; }).join('')
     + `</div>`;
   h += `<button class="quickadd" data-quickadd>+ Add to today</button>`;
+  h += `<form class="qaform" data-qaform hidden><input data-qainput type="text" placeholder="Add a plan for ${fmtShort(selDate())}" autocomplete="off"><button type="submit">Add</button></form>`;
   h += footnote(); return h;
 }
 function viewMonth(){
@@ -211,7 +215,11 @@ function bind(){
   if(at) at.onclick = ()=>{ const inp = document.getElementById('newTask'); const v = inp.value.trim();
     if(v){ bucket(view.bucket).tasks.push({name:v, tag:'', done:false}); save(); render(); } };
   const qa = document.querySelector('[data-quickadd]');
-  if(qa) qa.onclick = ()=>{ const v = prompt('Add to today\u2019s lineup:'); if(v && v.trim()){ state.events.push({time:'Anytime', title:v.trim(), bucket:'other', note:'', done:false, date:selDate()}); save(); render(); } };
+  const qf = document.querySelector('[data-qaform]');
+  if(qa && qf){
+    qa.onclick = ()=>{ qf.hidden = false; qa.hidden = true; qf.querySelector('[data-qainput]').focus(); };
+    qf.onsubmit = (ev)=>{ ev.preventDefault(); const inp = qf.querySelector('[data-qainput]'); const v = inp.value; if(v && v.trim()){ state.events.push({time:'Anytime', title:v.trim(), bucket:'other', note:'', done:false, date:selDate()}); save(); render(); } };
+  }
   const rs = document.querySelector('[data-reset]');
   if(rs) rs.onclick = ()=>{ localStorage.removeItem(KEY); load(); view = {tab:'today', bucket:null}; render(); };
 }
