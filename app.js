@@ -279,7 +279,7 @@ function viewGrocery(){
     + `<div class="addtask"><input id="newGrocery" placeholder="add an item\u2026"><button data-add-grocery>Add</button></div></div>` + footnote();
 }
 function footnote(){
-  if(mode==='cloud') return `<div class="footnote">Private to your account - only you can see this.</div>`;
+  if(mode==='cloud') return `<div class="footnote">Private to your account in Katch.</div>`;
   return `<div class="footnote">Demo content - example data only, not anyone\u2019s real plans.<br>Edits save in this browser (localStorage).</div>
           <button class="reset" data-reset>Reset demo</button>`;
 }
