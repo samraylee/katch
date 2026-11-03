@@ -140,3 +140,15 @@ main{padding:0 16px 40px}
 .qaform input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--ink);font:inherit;font-size:14px}
 .qaform input:focus{outline:none;border-color:var(--vio)}
 .qaform button{background:linear-gradient(135deg,#5A2BE7,#8A5CF6);border:none;border-radius:12px;padding:10px 16px;color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+/* v4: auth screen + account pill */
+#auth{padding:48px 24px}
+.authcard{display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:15vh}
+.auth-title{font-family:Fraunces,serif;font-weight:700;font-size:44px;margin:0 0 8px;background:linear-gradient(180deg,#FFFFFF 0%,#E3D9FF 45%,#F7C6EE 75%,#B9B3D6 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.auth-sub{color:var(--mut);font-size:14px;margin:0 0 28px}
+.authbtn{background:linear-gradient(135deg,#5A2BE7,#8A5CF6);border:none;border-radius:14px;padding:14px 28px;color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer;width:100%;max-width:280px}
+.authbtn:active{opacity:.85}
+.auth-err{color:#E84A6F;font-size:13px;margin-top:14px}
+#accountPill{margin-left:auto;display:flex;align-items:center;gap:8px}
+.acctmail{font-size:11px;color:var(--mut);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.signout{background:none;border:1px solid var(--line);border-radius:8px;color:var(--mut);font:inherit;font-size:11px;padding:3px 8px;cursor:pointer}
+.toprow{display:flex;align-items:center}
