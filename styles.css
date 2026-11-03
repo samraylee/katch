@@ -133,3 +133,6 @@ main{padding:0 16px 40px}
 .recipe+.recipe{border-top:1px solid var(--line)}
 .recipe h4{font-family:'Fraunces',serif;font-size:16px;margin:0 0 4px}
 .recipe p{font-size:12.5px;color:var(--mut);margin:0;line-height:1.5}
+/* v3.2: real week strip */
+.week .d{background:none;border:none;font:inherit;cursor:pointer;padding:0}
+.week .d.sel .n{border-color:var(--vio);border-width:1.6px}
