@@ -5,9 +5,9 @@ const SWATCHES = ['#BFB065','#D08A92','#B84A52','#E8B74A','#E95FB8','#8B86A3','#
 const CONFIG = {
   seed: {
     events: [
-      {time:'9:00 AM',  title:'Ethics Seminar', bucket:'classes', note:'Reading discussion', done:false, next:true},
-      {time:'12:30 PM', title:'Lunch with Sam', bucket:'other',   note:'', place:'Joe\u2019s Coffee', done:false, photo:'coffee.jpg'},
-      {time:'6:30 PM',  title:'Lemon chicken night', bucket:'hoe', note:'', door:'2 recipes + list', done:false, photo:'meal-hero2.jpg'},
+      {time:'9:00 AM',  title:'Ethics Seminar', bucket:'classes', note:'Reading discussion', done:false, next:true, date:null},
+      {time:'12:30 PM', title:'Lunch with Sam', bucket:'other',   note:'', place:'Joe\u2019s Coffee', done:false, photo:'coffee.jpg', date:null},
+      {time:'6:30 PM',  title:'Lemon chicken night', bucket:'hoe', note:'', door:'2 recipes + list', done:false, photo:'meal-hero2.jpg', date:null},
     ],
     routines: [
       {name:'Morning pages', bucket:'other', done:true},
@@ -35,10 +35,22 @@ const CONFIG = {
   }
 };
 const KEY = 'katch-demo-v3';
-let state, view = {tab:'today', bucket:null};
+let state, view = {tab:'today', bucket:null, date:null};
+const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const TODAY = iso(new Date());
+const selDate = () => view.date || TODAY;
+const WD = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function parseDay(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function mondayOf(d){ const x=new Date(d); const off=(x.getDay()+6)%7; x.setDate(x.getDate()-off); return x; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+const fmtShort = s => { const d=parseDay(s); return MN[d.getMonth()].slice(0,3)+' '+d.getDate(); };
+const fmtDayName = s => WD[parseDay(s).getDay()];
 function load(){
+  CONFIG.seed.events.forEach(e=>{ if(!e.date) e.date = TODAY; });
   try{ const s = localStorage.getItem(KEY); if(s){ state = JSON.parse(s);
     if(!state.grocery) state.grocery = JSON.parse(JSON.stringify(CONFIG.seed.grocery));
+    (state.events||[]).forEach(e=>{ if(!e.date) e.date = TODAY; });
     return; } }catch(e){}
   state = JSON.parse(JSON.stringify(CONFIG.seed));
   save();
@@ -48,10 +60,15 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const bucket = id => state.buckets.find(b => b.id === id) || state.buckets.find(b => b.id === 'other');
 
 function render(){
-  document.getElementById('dateSummary').textContent = `Nov 2 \u00b7 ${state.events.length} plans \u00b7 ${state.places.length} place`;
-  const days = ['M','T','W','T','F','S','S'];
-  document.getElementById('week').innerHTML = days.map((d,i)=>
-    `<div class="d${i===0?' today':''}"><span>${d}</span><span class="n">${2+i}</span></div>`).join('');
+  const sd = selDate();
+  const dayEvents = state.events.filter(e=>e.date===sd);
+  document.querySelector('h1.day').textContent = fmtDayName(sd);
+  document.getElementById('dateSummary').textContent = `${fmtShort(sd)} \u00b7 ${dayEvents.length} plan${dayEvents.length===1?'':'s'} \u00b7 ${state.places.length} place`;
+  const mon = mondayOf(new Date());
+  document.getElementById('week').innerHTML = ['M','T','W','T','F','S','S'].map((d,i)=>{
+    const dd = addDays(mon,i), di = iso(dd);
+    return `<button class="d${di===TODAY?' today':''}${di===sd?' sel':''}" data-day="${di}"><span>${d}</span><span class="n">${dd.getDate()}</span></button>`;
+  }).join('');
   const app = document.getElementById('app');
   if(view.view==='event') app.innerHTML = viewEventDetail(view.eventIndex);
   else if(view.view==='recipes') app.innerHTML = viewRecipes();
@@ -66,14 +83,17 @@ function render(){
   bind();
 }
 function viewToday(){
-  const feats = state.events.filter(e=>e.next), rest = state.events.filter(e=>!e.next);
-  let h = `<div class="section"><h2>The lineup</h2><span>${state.events.length} today</span></div>`;
+  const sd = selDate();
+  const todays = state.events.filter(e=>e.date===sd);
+  const feats = todays.filter(e=>e.next), rest = todays.filter(e=>!e.next);
+  let h = `<div class="section"><h2>The lineup</h2><span>${todays.length} ${sd===TODAY?'today':fmtShort(sd)}</span></div>`;
+  if(!todays.length) h += `<div class="card" style="padding:18px;text-align:center;color:var(--mut);font-size:13px">No plans ${sd===TODAY?'today':'on '+fmtShort(sd)} yet.</div>`;
   feats.forEach(ev=>{ const b = bucket(ev.bucket);
     h += `<div class="feat"><span class="strip" style="background:${b.color}"></span>
       <div class="up">Up next \u00b7 ${esc(ev.time)}</div><h3>${esc(ev.title)}</h3><div class="sub">${esc(ev.note)}</div>
       <div class="row"><span class="btag"><span class="dot" style="background:${b.color}"></span>${esc(b.name)}</span>
       <button class="openbtn" data-open-event="${state.events.indexOf(ev)}">Open \u2192</button></div></div>`; });
-  h += `<div class="card">` + rest.map((ev)=>{ const b = bucket(ev.bucket); const i = state.events.indexOf(ev);
+  h += (feats.length||rest.length)?`<div class="card">`:`` + rest.map((ev)=>{ const b = bucket(ev.bucket); const i = state.events.indexOf(ev);
     return `<div class="evrow${ev.done?' done':''}" data-open-event="${i}">
       <span class="strip" style="background:${b.color}"></span>
       <span class="chk evchk" data-toggle-event="${i}"></span>
@@ -92,14 +112,18 @@ function viewToday(){
   h += footnote(); return h;
 }
 function viewMonth(){
-  const first = 6; // Nov 1 2026 = Sunday; grid starts Monday -> 6 leading cells
-  const evDays = {2: state.events.map(e=>bucket(e.bucket).color)};
-  let h = `<div class="section"><h2>November 2026</h2><span>demo</span></div><div class="card"><div class="mgrid">`;
+  const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
+  const firstD = new Date(y,m,1); const first = (firstD.getDay()+6)%7; // leading cells from prev month
+  const dimStart = new Date(y,m,1-first);
+  const daysIn = new Date(y,m+1,0).getDate();
+  const byDay = {};
+  state.events.forEach(e=>{ const d=parseDay(e.date); if(d.getFullYear()===y&&d.getMonth()===m){ (byDay[d.getDate()] = byDay[d.getDate()]||[]).push(bucket(e.bucket).color); } });
+  let h = `<div class="section"><h2>${MN[m]} ${y}</h2><span>demo</span></div><div class="card"><div class="mgrid">`;
   ['M','T','W','T','F','S','S'].forEach(d=> h += `<div class="h">${d}</div>`);
-  for(let i=0;i<first;i++) h += `<div class="c dim">${26+i}</div>`;
-  for(let d=1;d<=30;d++){
-    const dots = evDays[d] ? `<span style="display:flex;gap:2px">${evDays[d].map(c=>`<span class="ed" style="background:${c}"></span>`).join('')}</span>` : '';
-    h += `<div class="c${d===2?' today':''}">${d}${dots}</div>`;
+  for(let i=0;i<first;i++) h += `<div class="c dim">${dimStart.getDate()+i}</div>`;
+  for(let d=1;d<=daysIn;d++){
+    const dots = byDay[d] ? `<span style="display:flex;gap:2px">${byDay[d].map(c=>`<span class="ed" style="background:${c}"></span>`).join('')}</span>` : '';
+    h += `<div class="c${iso(new Date(y,m,d))===TODAY?' today':''}">${d}${dots}</div>`;
   }
   return h + `</div></div>` + footnote();
 }
@@ -165,6 +189,7 @@ function footnote(){
 }
 function bind(){
   document.querySelectorAll('[data-tab]').forEach(el=> el.onclick = ()=>{ view = {tab:el.dataset.tab, bucket:null}; render(); });
+  document.querySelectorAll('[data-day]').forEach(el=> el.onclick = ()=>{ view.date = el.dataset.day; view.view = null; render(); });
   document.querySelectorAll('[data-toggle-event]').forEach(el=> el.onclick = (ev)=>{ ev.stopPropagation(); const e = state.events[+el.dataset.toggleEvent]; e.done = !e.done; save(); render(); });
   document.querySelectorAll('[data-open-event]').forEach(el=> el.onclick = ()=>{ view = {tab:'today', view:'event', eventIndex:+el.dataset.openEvent}; render(); });
   document.querySelectorAll('[data-back-today]').forEach(el=> el.onclick = ()=>{ view = {tab:'today'}; render(); });
@@ -186,7 +211,7 @@ function bind(){
   if(at) at.onclick = ()=>{ const inp = document.getElementById('newTask'); const v = inp.value.trim();
     if(v){ bucket(view.bucket).tasks.push({name:v, tag:'', done:false}); save(); render(); } };
   const qa = document.querySelector('[data-quickadd]');
-  if(qa) qa.onclick = ()=>{ const v = prompt('Add to today\u2019s lineup:'); if(v && v.trim()){ state.events.push({time:'Anytime', title:v.trim(), bucket:'other', note:'', done:false}); save(); render(); } };
+  if(qa) qa.onclick = ()=>{ const v = prompt('Add to today\u2019s lineup:'); if(v && v.trim()){ state.events.push({time:'Anytime', title:v.trim(), bucket:'other', note:'', done:false, date:selDate()}); save(); render(); } };
   const rs = document.querySelector('[data-reset]');
   if(rs) rs.onclick = ()=>{ localStorage.removeItem(KEY); load(); view = {tab:'today', bucket:null}; render(); };
 }
